@@ -1,0 +1,8 @@
+version: "3"
+services:
+  obsidian-livesync-classroom:
+    image: obsidian-livesync-classroom
+    container_name: obsidian-livesync-classroom
+    restart: always
+    volumes:
+      - /home/ubuntu/docker/livesync-classroom/dat/config.json:/usr/src/app/livesync-classroom/dat/config.js:rw
