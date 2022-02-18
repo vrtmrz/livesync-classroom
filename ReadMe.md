@@ -35,12 +35,16 @@ $ npm run dev
 ```git
 git clone https://github.com/vrtmrz/livesync-classroom.git
 ```
-2. Open the config file dat/config.sample.json, edit and save to dat/config.json
-3. Build the Dockerfile
+2. Open the cloned directory
+```bash
+cd livesync-classroom
+```
+3. Open the config file dat/config.sample.json, edit and save to dat/config.json
+4. Build the Dockerfile
 ```bash
 sudo docker build -t obsidian-livesync-classroom .
 ```
-4. Create the docker container
+5. Create the docker container
 ```bash
 sudo docker-compose up -d
 ```
