@@ -12,7 +12,7 @@ having different structures and different passphrases.
 And, you can synchronize documents under the specified folder,
 to another vault's specified one.
 
-Of course, ~~bi-~~multi-directional!
+Of course, ~~bi-~~ multi-directional!
 
 # How to use
 ## Simply run
@@ -48,7 +48,7 @@ sudo docker-compose up -d
 
 The configuration file consists of the following structure.
 
-```json
+```jsonc
 {
     // "config_1" is just the name for identifying the connection.
     "config_1": {
