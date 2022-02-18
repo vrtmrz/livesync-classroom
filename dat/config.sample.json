@@ -1,20 +1,42 @@
 {
-    "private": {
-        "uri": "http://localhost:5984/private_vault",
-        "auth": {
-            "username": "username_of_private_vault",
-            "password": "password_of_private_vault",
-            "passphrase": "passphrase_of_private_vault"
+    "config_1": {
+        "private": {
+            "uri": "http://localhost:5984/private1_vault",
+            "auth": {
+                "username": "username_of_private_vault",
+                "password": "password_of_private_vault",
+                "passphrase": "passphrase_of_private_vault"
+            },
+            "path": "shared/"
         },
-        "path": "shared/"
+        "shared": {
+            "uri": "http://localhost:5984/shared_vault",
+            "auth": {
+                "username": "username_of_shared_vault",
+                "password": "password_of_shared_vault",
+                "passphrase": "passphrase_of_shared_vault"
+            },
+            "path": ""
+        }
     },
-    "shared": {
-        "uri": "http://localhost:5984/shared_vault",
-        "auth": {
-            "username": "username_of_shared_vault",
-            "password": "password_of_shared_vault",
-            "passphrase": "passphrase_of_shared_vault"
+    "config_2": {
+        "private": {
+            "uri": "http://localhost:5984/private2_vault",
+            "auth": {
+                "username": "username_of_private_vault",
+                "password": "password_of_private_vault",
+                "passphrase": "passphrase_of_private_vault"
+            },
+            "path": "shared/"
         },
-        "path": ""
+        "shared": {
+            "uri": "http://localhost:5984/shared_vault",
+            "auth": {
+                "username": "username_of_shared_vault",
+                "password": "password_of_shared_vault",
+                "passphrase": "passphrase_of_shared_vault"
+            },
+            "path": ""
+        }
     }
 }

@@ -3,3 +3,5 @@ dat/**
 !dat/config.sample.json
 node_modules
 dist/*
+.idea/*
+.vscode/*
