@@ -1,8 +1,11 @@
 version: "3"
+# LiveSync classroom - Sharing obsidian's vault via Self-hosted LiveSync.
+# Initial Author: @kenjibailly
+# Modified      : @vrtmrz
 services:
   obsidian-livesync-classroom:
     image: obsidian-livesync-classroom
     container_name: obsidian-livesync-classroom
     restart: always
     volumes:
-      - ./dat/config.json:/usr/src/app/dat/config.js:rw
+      - ./dat:/usr/src/app/dat:rw

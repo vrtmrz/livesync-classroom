@@ -1,3 +1,6 @@
+# LiveSync classroom - Sharing obsidian's vault via Self-hosted LiveSync.
+# Initial Author: @kenjibailly
+# Modified      : @vrtmrz
 FROM node:16-alpine
 WORKDIR /usr/src/app
 COPY . .
