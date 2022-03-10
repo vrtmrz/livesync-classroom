@@ -77,6 +77,12 @@ The configuration file consists of the following structure.
                 "passphrase": "passphrase_of_shared_vault"
             },
             "path": ""
+        },
+        // If "export" is defined, all shared files would be saved to real files.
+        // After files are exported, the processor will be executed.
+        "export": {
+            "path": "./export",
+            "processor": "utils/build.sh"
         }
     },
     // You can set up multiple vault syncing.
@@ -187,3 +193,8 @@ Totally synchronized like this:
     }
 }
 ```
+
+## What is "export" for
+
+You can run [obsdconv](https://github.com/qawatake/obsdconv), [Hugo](https://github.com/gohugoio/hugo) and any other commands that you need automatically when the vault has been updated.
+So you can share documents to the people that hasn't Obsidian immediately using live-server as you like.

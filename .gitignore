@@ -5,3 +5,9 @@ node_modules
 dist/*
 .idea/*
 .vscode/*
+utils/**
+export/**
+!export/.gitempty
+!utils/build.sample.bat
+!utils/build.sample.sh
+hugo/**

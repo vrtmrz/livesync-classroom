@@ -17,10 +17,15 @@ export interface config {
     };
     path: string;
 }
+export interface exportConfig {
+    path: string;
+    processor: string;
+}
 
 export interface eachConf {
     private: config;
     shared: config;
+    export: exportConfig;
 }
 
 export interface configFile {

@@ -17,6 +17,10 @@
                 "passphrase": "passphrase_of_shared_vault"
             },
             "path": ""
+        },
+        "export": {
+            "path": "./export",
+            "processor": "utils/build.sh"
         }
     },
     "config_2": {

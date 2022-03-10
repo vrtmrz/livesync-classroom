@@ -1,7 +1,11 @@
 import { decrypt, encrypt } from "./e2ee.js";
 //@ts-ignore
 import { PouchDB as PouchDB_src } from "./pouchdb.js";
-import * as fs from "fs";
+import * as fs from "fs/promises";
+import * as path from "path";
+import * as util from "util";
+import { exec } from "child_process";
+
 import { Logger } from "./logger.js";
 import { configFile, eachConf, LOG_LEVEL, type_direction } from "./types.js";
 
@@ -39,8 +43,8 @@ function delay(ms: number): Promise<void> {
     return new Promise((res) => setTimeout(() => res(), ms));
 }
 
-function saveStat() {
-    fs.writeFileSync(statFile, JSON.stringify(syncStat));
+async function saveStat() {
+    await fs.writeFile(statFile, JSON.stringify(syncStat));
 }
 function triggerSaveStat() {
     if (saveStatTimer == undefined) clearTimeout(saveStatTimer);
@@ -54,6 +58,33 @@ function triggerSaveStat() {
             saveStat();
         }, 500);
     }
+}
+
+let processorTimer: NodeJS.Timeout | undefined = undefined;
+async function runEngine() {
+    let processors = [...waitingProcessorList];
+    waitingProcessorList = [];
+    log("Run external commands.");
+    const execPromise = util.promisify(exec);
+    const procs = processors.map((e) => execPromise(e));
+    let results = await Promise.allSettled(procs);
+    for (const result of results) {
+        if (result.status == "rejected") {
+            log(`Failed! Reason:${result.reason}`);
+        } else {
+            log(`OK: stdout:${result.value.stdout}`);
+            log(`OK: stderr:${result.value.stderr}`);
+        }
+    }
+}
+let waitingProcessorList: string[] = [];
+function triggerProcessor(procs: string) {
+    if (procs == "") return;
+    waitingProcessorList = Array.from(new Set([...waitingProcessorList, procs]));
+    if (processorTimer == undefined) clearTimeout(processorTimer);
+    processorTimer = setTimeout(() => {
+        runEngine();
+    }, 500);
 }
 interface directionAndType {
     syncKey: string;
@@ -72,10 +103,10 @@ async function main() {
     let xx = await xxhash();
     h32Raw = xx.h32Raw;
     h32 = xx.h32ToString;
-    let config: configFile = JSON.parse(fs.readFileSync("./dat/config.json") + "");
+    let config: configFile = JSON.parse((await fs.readFile("./dat/config.json")) + "");
     //let procs = [];
     try {
-        syncStat = JSON.parse(fs.readFileSync(statFile) + "");
+        syncStat = JSON.parse((await fs.readFile(statFile)) + "");
     } catch (ex) {
         log("could not read pervious sync status, initialized.");
         syncStat = {};
@@ -93,6 +124,9 @@ async function eachProc(syncKey: string, config: eachConf) {
     const sharedDB = config.shared.uri;
     const sharedAuth = config.shared.auth;
     const sharedPath = config.shared.path;
+
+    const exportPath = config.export?.path ?? "";
+    const processor = config.export?.processor ?? "";
 
     const private_remote = new PouchDB(privateDB, { auth: privateAuth });
     const shared_remote = new PouchDB(sharedDB, { auth: sharedAuth });
@@ -164,10 +198,11 @@ async function eachProc(syncKey: string, config: eachConf) {
                             })
                             .on("change", async function (change) {
                                 if (change.doc?._id.startsWith(e.fromPrefix) && isVaildDoc(change.doc._id)) {
-                                    let x = await transferDoc(e.syncKey, e.direction, e.fromDB, change.doc, e.fromPrefix, e.toDB, e.toPrefix, e.decryptKey, e.encryptKey);
+                                    let x = await transferDoc(e.syncKey, e.direction, e.fromDB, change.doc, e.fromPrefix, e.toDB, e.toPrefix, e.decryptKey, e.encryptKey, exportPath);
                                     if (x) {
                                         syncStat[syncKey][e.direction_on_stat] = change.seq + "";
                                         triggerSaveStat();
+                                        triggerProcessor(processor);
                                     }
                                 }
                             })
@@ -217,7 +252,8 @@ async function transferDoc(
     toDB: PouchDB.Database,
     toPrefix: string,
     decryptKey: string,
-    encryptKey: string
+    encryptKey: string,
+    exportPath: string
 ): Promise<boolean> {
     const docKey = `${syncKey}:${direction_to_disp[direction]} ${fromDoc._id} (${fromDoc._rev})`;
     while (running[syncKey]) {
@@ -231,7 +267,8 @@ async function transferDoc(
         log(`doc:${docKey} begin Transfer`);
         let continue_count = 3;
         try {
-            let sendDoc: PouchDB.Core.ExistingDocument<PouchDB.Core.ChangesMeta> & { children?: string[] } = { ...fromDoc, _id: toPrefix + fromDoc._id.substring(fromPrefix.length) };
+            const docName = fromDoc._id.substring(fromPrefix.length);
+            let sendDoc: PouchDB.Core.ExistingDocument<PouchDB.Core.ChangesMeta> & { children?: string[]; type?: string } = { ...fromDoc, _id: toPrefix + (docName.startsWith("_") ? "/" + docName : docName) };
             let retry = false;
             const userpasswordHash = h32Raw(new TextEncoder().encode(encryptKey));
             do {
@@ -242,6 +279,11 @@ async function transferDoc(
                         return false;
                     }
                     await delay(1500);
+                }
+                if (sendDoc._deleted && exportPath != "") {
+                    const writePath = path.join(exportPath, docName);
+                    log(`doc:${docKey}: Deleted, so delete from ${writePath}`);
+                    await fs.unlink(writePath);
                 }
                 retry = false;
                 let oldRemoteDoc: any = { children: [] };
@@ -261,7 +303,6 @@ async function transferDoc(
                         throw ex;
                     }
                 }
-
                 if (!sendDoc.children) {
                     log(`doc:${docKey}: Warning! document doesn't have chunks, skipped`);
                     return false;
@@ -289,6 +330,21 @@ async function transferDoc(
                                       })
                                   )
                               ).map((e) => (e.status == "fulfilled" ? e.value : null));
+                    // If exporting is enabled, write contents to the real file.
+                    if (exportPath != "" && !sendDoc._deleted) {
+                        const writePath = path.join(exportPath, docName);
+                        const dirName = path.dirname(writePath);
+                        log(`doc:${docKey}: Exporting to ${writePath}`);
+                        await fs.mkdir(dirName, { recursive: true });
+                        const dt_plain = decrypted_children.map((e) => e.data).join("");
+
+                        if (sendDoc.type == "plain") {
+                            await fs.writeFile(writePath, dt_plain);
+                        } else {
+                            const dt_bin = Buffer.from(dt_plain, "base64");
+                            await fs.writeFile(writePath, dt_bin, { encoding: "binary" });
+                        }
+                    }
                     let encrypted_children = (
                         await Promise.allSettled(
                             decrypted_children.map(async (e: any) => {
