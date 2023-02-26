@@ -268,7 +268,7 @@ async function transferDoc(
         let continue_count = 3;
         try {
             const docName = fromDoc._id.substring(fromPrefix.length);
-            let sendDoc: PouchDB.Core.ExistingDocument<PouchDB.Core.ChangesMeta> & { children?: string[]; type?: string } = { ...fromDoc, _id: toPrefix + (docName.startsWith("_") ? "/" + docName : docName) };
+            let sendDoc: PouchDB.Core.ExistingDocument<PouchDB.Core.ChangesMeta> & { children?: string[]; type?: string; deleted?: boolean } = { ...fromDoc, _id: toPrefix + (docName.startsWith("_") ? "/" + docName : docName) };
             let retry = false;
             const userpasswordHash = h32Raw(new TextEncoder().encode(encryptKey));
             do {
@@ -280,7 +280,7 @@ async function transferDoc(
                     }
                     await delay(1500);
                 }
-                if (sendDoc._deleted && exportPath != "") {
+                if ((sendDoc._deleted || sendDoc.deleted) && exportPath != "") {
                     const writePath = path.join(exportPath, docName);
                     log(`doc:${docKey}: Deleted, so delete from ${writePath}`);
                     await fs.unlink(writePath);
@@ -292,7 +292,7 @@ async function transferDoc(
                     sendDoc._rev = oldRemoteDoc._rev;
                 } catch (ex: any) {
                     if (ex.status && ex.status == 404) {
-                        if (sendDoc._deleted) {
+                        if (sendDoc._deleted || sendDoc.deleted) {
                             // we have to skip this.
                             log(`doc:${docKey} it had been deleted, and there's no need to synchronized`);
                             return true;
@@ -331,7 +331,7 @@ async function transferDoc(
                                   )
                               ).map((e) => (e.status == "fulfilled" ? e.value : null));
                     // If exporting is enabled, write contents to the real file.
-                    if (exportPath != "" && !sendDoc._deleted) {
+                    if (exportPath != "" && !(sendDoc._deleted || sendDoc.deleted)) {
                         const writePath = path.join(exportPath, docName);
                         const dirName = path.dirname(writePath);
                         log(`doc:${docKey}: Exporting to ${writePath}`);
@@ -385,7 +385,7 @@ async function transferDoc(
                         sendDoc._rev = oldRemoteDoc._rev;
                     } catch (ex: any) {
                         if (ex.status && ex.status == 404) {
-                            if (sendDoc._deleted) {
+                            if (sendDoc._deleted || sendDoc.deleted) {
                                 // we have to skip this.
                                 log(`doc:${docKey} it had been deleted, and there's no need to synchronized`);
                                 return true;
