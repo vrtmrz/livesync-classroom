@@ -1,5 +1,8 @@
-# LiveSync classroom
+> [!IMPORTANT]  
+> The project has been integrated into [LiveSync Bridge](https://github.com/vrtmrz/livesync-bridge), and will be no longer maintained.
+> If you have any ideas or problems, please do not hesitate to let us know as a new request for LiveSync-Bridge.
 
+# LiveSync classroom
 ![screenshot](./images/livesync-classroom-capture.gif)
 
 ## What is this?
